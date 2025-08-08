@@ -1,0 +1,11 @@
+.long-term-memory-container {
+    padding: 10px;
+    background-color: var(--background-color-tertiary); /* 使用SillyTavern的颜色变量，保持风格统一 */
+}
+.long-term-memory-container h4 {
+    margin-top: 10px;
+    margin-bottom: 5px;
+}
+.long-term-memory-container label {
+    margin-right: 5px;
+}
