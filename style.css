@@ -1,11 +1,56 @@
+/* 浮动面板的核心样式 */
+#long-term-memory-panel {
+    position: fixed; /* 固定定位，不随页面滚动 */
+    bottom: 20px;    /* 距离底部20px */
+    right: 20px;     /* 距离右侧20px */
+    width: 350px;
+    background-color: var(--background-color); /* 使用SillyTavern的颜色变量 */
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 1000; /* 确保在其他元素之上 */
+    color: var(--text-color);
+    display: none; /* 默认隐藏 */
+}
+
+/* 面板内部的通用样式 */
 .long-term-memory-container {
-    padding: 10px;
-    background-color: var(--background-color-tertiary); /* 使用SillyTavern的颜色变量，保持风格统一 */
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* 元素之间的间距 */
 }
+
 .long-term-memory-container h4 {
-    margin-top: 10px;
+    margin-top: 0;
     margin-bottom: 5px;
+    color: var(--text-color-accent);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 5px;
 }
+
 .long-term-memory-container label {
-    margin-right: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* 让按钮更好看一点 */
+#manual-summary-btn {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#manual-summary-btn:hover {
+    background-color: var(--primary-color-accent);
+}
+
+#manual-summary-btn:disabled {
+    background-color: var(--text-color-disabled);
+    cursor: not-allowed;
 }
