@@ -1,7 +1,7 @@
 {
     "name": "Long Term Memory",
     "display_name": "🧠 长期记忆",
-    "author": "你的名字",
+    "author": "Stephy",
     "version": "0.4.0",
     "description": "通过总结对话并存入世界书来管理长期记忆。",
     "type": "extension",
