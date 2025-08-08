@@ -1,7 +1,0 @@
-{
-    "name": "Long Term Memory",
-    "author": "Stephy",
-    "version": "0.1.0",
-    "description": "通过总结对话并存入世界书来管理长期记忆。",
-    "requires": ["messages", "worldinfo"]
-}

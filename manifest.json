@@ -1,0 +1,12 @@
+{
+    "name": "Long Term Memory",
+    "author": "Stephy",
+    "version": "0.2.0",
+    "description": "通过总结对话并存入世界书来管理长期记忆。",
+    "type": "extension",
+    "entrypoints": {
+        "script": "script.js",
+        "style": "style.css",
+        "view": "index.html"
+    }
+}
