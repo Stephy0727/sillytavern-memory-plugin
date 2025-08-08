@@ -1,12 +1,18 @@
 {
     "name": "Long Term Memory",
+    "display_name": "🧠 长期记忆",
     "author": "Stephy",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "通过总结对话并存入世界书来管理长期记忆。",
     "type": "extension",
     "entrypoints": {
         "script": "script.js",
         "style": "style.css",
         "view": "index.html"
+    },
+    "sidebar_settings": {
+        "name": "长期记忆",
+        "icon": "🧠",
+        "file": "index.html"
     }
 }
