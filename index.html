@@ -1,12 +1,29 @@
 <div class="long-term-memory-container">
-    <h4>长期记忆插件</h4>
-    <p>管理角色的长期记忆。点击下方按钮手动总结最近的对话。</p>
-    <button id="manual-summary-btn" class="menu_button">手动生成记忆</button>
+    <!-- 面板标题，可以添加一个关闭按钮 -->
+    <div class="panel-header">
+        <h4>🧠 长期记忆面板</h4>
+        <!-- 你可以未来在这里添加关闭按钮等 -->
+    </div>
+
+    <!-- 手动操作区域 -->
+    <div class="panel-section">
+        <p>点击下方按钮，手动总结最近的对话并存入世界书。</p>
+        <button id="manual-summary-btn" class="menu_button">手动生成记忆</button>
+    </div>
+
+    <!-- 分隔线 -->
     <hr>
-    <h4>设置</h4>
-    <label for="auto-summary-toggle">启用自动总结:</label>
-    <input type="checkbox" id="auto-summary-toggle">
-    <br>
-    <label for="summary-frequency">每 (条消息) 总结一次:</label>
-    <input type="number" id="summary-frequency" value="20" min="5" style="width: 50px;">
+
+    <!-- 自动化设置区域 -->
+    <div class="panel-section">
+        <h4>自动化设置</h4>
+        <label>
+            <span>启用自动总结</span>
+            <input type="checkbox" id="auto-summary-toggle">
+        </label>
+        <label>
+            <span>每 (条消息) 总结一次</span>
+            <input type="number" id="summary-frequency" value="20" min="5" style="width: 60px;">
+        </label>
+    </div>
 </div>
