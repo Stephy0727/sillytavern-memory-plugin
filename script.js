@@ -1,23 +1,10 @@
-// 这是插件的JS代码文件
-
-// 等待SillyTavern加载完毕
 jQuery(async () => {
-    // 导入SillyTavern的API，这样我们才能和主程序交互
+    // 导入SillyTavern的API
     const {
         getApiUrl,
-        getCharacterAvatar,
-        getMesBG,
-        getSendMeth,
-        getToken,
-        modules,
+        callPopup,
         chat,
-        characters,
-        addWorldEntry, // 关键API：添加世界书条目
-        world_info,
-        this_chid,
-        main_api,
-        token,
-        callPopup
+        addWorldEntry
     } = SillyTavern.getContext();
 
     // 插件设置的默认值
@@ -25,8 +12,10 @@ jQuery(async () => {
         autoSummary: false,
         summaryFrequency: 20
     };
+    let messageCounter = 0; // 用于自动总结的消息计数器
+    let isSummarizing = false; // 一个“锁”，防止在总结时再次触发
 
-    // 获取界面元素
+    // ---- 获取并绑定UI元素 ----
     const manualSummaryBtn = document.getElementById('manual-summary-btn');
     const autoSummaryToggle = document.getElementById('auto-summary-toggle');
     const summaryFrequencyInput = document.getElementById('summary-frequency');
@@ -34,66 +23,74 @@ jQuery(async () => {
     // ---- 功能函数 ----
 
     /**
-     * 这是插件的核心：生成并保存记忆
+     * 核心功能：生成并保存记忆
      * @param {number} messageCount - 要总结的消息数量
      */
-    async function generateAndSaveMemory(messageCount = 10) {
-        // 1. 获取最近的聊天记录
-        const history = (await chat.getHistory())?.slice(-messageCount);
-        if (!history || history.length === 0) {
-            callPopup("没有足够的聊天记录来生成记忆。", 'text');
+    async function generateAndSaveMemory(messageCount) {
+        if (isSummarizing) {
+            console.log("长期记忆插件：已有一个总结任务正在进行，本次跳过。");
             return;
         }
-        
-        let historyText = "";
-        history.forEach(msg => {
-            historyText += `${msg.name}: ${msg.mes}\n`;
-        });
 
-        // 2. 构建一个请求，让AI来总结这段对话
-        // 这是给AI的指示，告诉它要做什么
-        const prompt = `[SYSTEM] Please summarize the following conversation, focusing on key events, new information, and changes in character relationships. The summary should be concise and written in the third person, like a lorebook entry.
-        
-        Conversation:
-        ${historyText}
-        
-        Summary:`;
+        // 上锁
+        isSummarizing = true;
+        // 在UI上给用户一个反馈
+        manualSummaryBtn.textContent = '正在生成...';
+        manualSummaryBtn.disabled = true;
 
-        callPopup("正在请求AI生成记忆总结，请稍候...", 'text');
-
-        // 3. 发送请求给SillyTavern连接的AI API
-        // 这是最关键的一步，也是可能导致卡顿的地方，我们后续会优化
         try {
+            const history = (await chat.getHistory())?.slice(-messageCount);
+            if (!history || history.length < 5) { // 至少有5条消息才总结
+                callPopup("聊天记录太少，无法生成有意义的记忆。", 'info');
+                return; // 直接退出，不执行后续操作
+            }
+
+            let historyText = "";
+            history.forEach(msg => {
+                // 只包含用户和角色的消息，忽略系统消息
+                if (msg.is_user || !msg.is_system) {
+                    historyText += `${msg.name}: ${msg.mes}\n`;
+                }
+            });
+
+            // 如果处理后文本为空，也退出
+            if (historyText.trim() === "") {
+                return;
+            }
+
+            const prompt = `[SYSTEM] You are a story archivist. Your task is to summarize the following conversation part. Extract key events, plot points, newly revealed information, and significant changes in character states or relationships. The summary must be concise, neutral, and written in the third person, suitable for a lorebook entry.
+
+            Conversation to Summarize:
+            ${historyText}
+            
+            Concise Lorebook Summary:`;
+            
+            // 使用SillyTavern的内置API请求方法，更稳定
             const response = await fetch(`${getApiUrl()}/api/v1/generate`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Bypass-Tunnel-Auth': 'bypass'
-                },
+                headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Auth': 'bypass' },
                 body: JSON.stringify({
                     prompt: prompt,
-                    max_new_tokens: 150, // 限制总结的长度
-                    temperature: 0.7, // 让总结更多样化一点
-                    // 可以在这里添加更多你API支持的参数
+                    max_new_tokens: 150,
+                    temperature: 0.5,
+                    top_p: 0.9,
+                    // 减少不必要的参数，让请求更轻量
                 }),
             });
 
-            if (!response.ok) {
-                throw new Error(`API 请求失败，状态码: ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`API returned status ${response.status}`);
 
             const data = await response.json();
             const summaryText = data.results[0].text.trim();
 
             if (!summaryText) {
-                callPopup("AI返回的总结为空。", 'error');
-                return;
+                 console.warn("AI返回的总结为空。");
+                 return;
             }
 
-            // 4. 将总结存入世界书
             const newEntry = {
-                key: `Memory - ${new Date().toLocaleString()}`, // 用时间作为key，保证唯一性
-                content: summaryText,
+                key: `Memory - ${new Date().toLocaleDateString()}`, // Key可以重复，内容会被新的覆盖更新
+                content: `On ${new Date().toLocaleString()}, the following events occurred: ${summaryText}`,
                 comment: '由长期记忆插件自动生成',
                 case_sensitive: false,
                 selective: true,
@@ -103,23 +100,70 @@ jQuery(async () => {
             };
 
             await addWorldEntry(newEntry);
-            callPopup(`成功创建新的记忆条目！\n\n内容：\n${summaryText}`, 'text');
+            callPopup(`新的记忆已存档！`, 'success');
 
         } catch (error) {
-            console.error("生成记忆时出错:", error);
+            console.error("长期记忆插件 - 生成记忆时出错:", error);
             callPopup(`生成记忆时出错: ${error.message}`, 'error');
+        } finally {
+            // 不论成功还是失败，都要“开锁”并恢复按钮状态
+            isSummarizing = false;
+            manualSummaryBtn.textContent = '手动生成记忆';
+            manualSummaryBtn.disabled = false;
+        }
+    }
+    
+    // ---- 自动化逻辑 ----
+    function onMessageUpdate() {
+        if (!settings.autoSummary || isSummarizing) {
+            return;
+        }
+        
+        messageCounter++;
+        
+        if (messageCounter >= settings.summaryFrequency) {
+            console.log(`长期记忆插件：已达到 ${settings.summaryFrequency} 条消息，触发自动总结。`);
+            generateAndSaveMemory(settings.summaryFrequency);
+            messageCounter = 0; // 重置计数器
         }
     }
 
-    // ---- 事件监听 ----
+    // ---- 设置的加载与保存 ----
+    function loadSettings() {
+        const savedSettings = localStorage.getItem('longTermMemorySettings');
+        if (savedSettings) {
+            settings = { ...settings, ...JSON.parse(savedSettings) };
+        }
+        // 将加载的设置应用到UI上
+        autoSummaryToggle.checked = settings.autoSummary;
+        summaryFrequencyInput.value = settings.summaryFrequency;
+    }
 
-    // 监听“手动生成记忆”按钮的点击事件
+    function saveSettings() {
+        localStorage.setItem('longTermMemorySettings', JSON.stringify(settings));
+    }
+    
+    // ---- 事件监听 ----
     manualSummaryBtn.addEventListener('click', () => {
-        // 手动触发时，我们总结最近的20条消息
-        generateAndSaveMemory(20); 
+        // 手动触发时，使用输入框中的频率值作为消息数量
+        generateAndSaveMemory(Number(summaryFrequencyInput.value)); 
     });
 
-    // （自动化的部分我们将在下一步实现）
+    autoSummaryToggle.addEventListener('change', (event) => {
+        settings.autoSummary = event.target.checked;
+        saveSettings();
+        messageCounter = 0; // 切换时重置计数器
+    });
 
-    console.log("长期记忆插件已加载！");
+    summaryFrequencyInput.addEventListener('change', (event) => {
+        settings.summaryFrequency = Number(event.target.value);
+        saveSettings();
+    });
+
+    // 监听SillyTavern的消息生成事件，这是实现自动化的关键
+    SillyTavern.extensionEvents.on('message-generated', onMessageUpdate);
+
+    // ---- 插件初始化 ----
+    loadSettings();
+    console.log("长期记忆插件（优化版）已加载！");
 });
